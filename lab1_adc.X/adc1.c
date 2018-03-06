@@ -124,10 +124,13 @@ void __attribute__((interrupt, auto_psv)) _T2Interrupt(void)
     
 }
 int teste=1;
+int i=0;
 void __attribute__((__interrupt__, auto_psv)) _ADCInterrupt(void) {
 IFS0bits.ADIF = 0;
-teste=ADCBUF0;
-flag=1;
+adc_vals[i]=ADCBUF0;
+//teste=ADCBUF0;
+ADCON1bits.SAMP = 1;
+++i;
 
 }
 
@@ -135,7 +138,7 @@ flag=1;
 
 
 int main(void) {
-    int x;
+ 
     _TRISF0 = 0;                //this configures the PORTF pin 0 an output
 
     LED1 = 0;                   //this turns the LED1 ON
@@ -146,12 +149,13 @@ int main(void) {
     printf("Serial port says: Hello\n\r");
     ADCON1bits.SAMP = 1;
      timer2();
+     int p;
     while(1){
 
-        if(flag==1){
-              ADCON1bits.SAMP = 1;
-            printf("%d\n",teste);
-            flag=0;
+        if(i==250){
+             for(p=0;p<250;++p) 
+            printf("%d %d\n",p,adc_vals[p]);
+           
           
         }
        
