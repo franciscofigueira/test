@@ -60,9 +60,9 @@ void __attribute__((__interrupt__, __no_auto_psv__)) _U2RXInterrupt(void)
 void timer2(){
      T2CONbits.TON = 0;      //Timer_2 is OFF
     TMR2 = 0;               //resets Timer_2
-    PR2 = 20000;             	//sets the maximum count for Timer_2
+    PR2 = 2654;             	//sets the maximum count for Timer_2  90us
     T2CONbits.TCS = 0;      //choose FCY as clock source for Timer_2
-    T2CONbits.TCKPS = 0x2; //sets the Timer_2 pre-scaler to 1
+    T2CONbits.TCKPS = 0; //sets the Timer_2 pre-scaler to 1
     IFS0bits.T2IF = 0;      //clears Timer_2 interrupt flag
     _T2IE = 1;     	       	//enable Timer_2 Interrupts
     T2CONbits.TON = 1;      //turns Timer_2 OFF
@@ -120,15 +120,15 @@ void __attribute__((interrupt, auto_psv)) _T2Interrupt(void)
         LED1=1;
     }
 
- 	ADCON1bits.SAMP = 0;	
+ADCON1bits.SAMP = 0;	
     
 }
-int teste=1;
+
 int i=0;
 void __attribute__((__interrupt__, auto_psv)) _ADCInterrupt(void) {
 IFS0bits.ADIF = 0;
 adc_vals[i]=ADCBUF0;
-//teste=ADCBUF0;
+
 ADCON1bits.SAMP = 1;
 ++i;
 
@@ -150,13 +150,16 @@ int main(void) {
     ADCON1bits.SAMP = 1;
      timer2();
      int p;
+     int numero=256;//numero de conversoes a ser realizadas
     while(1){
 
-        if(i==250){
-             for(p=0;p<250;++p) 
+        if(i==numero){
+             //T2CONbits.TON = 0;
+             	ADCON1bits.ADON = 0; 
+             for(p=0;p<numero;++p) 
             printf("%d %d\n",p,adc_vals[p]);
            
-          
+                i=0;
         }
        
     }
