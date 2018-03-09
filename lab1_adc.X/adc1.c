@@ -26,9 +26,9 @@
 
 //char RXbuffer[RXBUFFSIZE];	//buffer used to store characters from serial port
 int str_pos = 0; 	//position in the RXbuffer
-int adc_vals[256]; 	//position in the RXbuffer
+int adc_vals[512]; 	//position in the RXbuffer
 
-int flag=0;
+
 void config_uart(void){
 	   U2MODEbits.UARTEN = 0;  // Bit15 TX, RX DISABLED, ENABLE at end of func
     U2MODEbits.USIDL = 0;   // Bit13 Continue in Idle
@@ -60,9 +60,9 @@ void __attribute__((__interrupt__, __no_auto_psv__)) _U2RXInterrupt(void)
 void timer2(){
      T2CONbits.TON = 0;      //Timer_2 is OFF
     TMR2 = 0;               //resets Timer_2
-    PR2 = 2654;             	//sets the maximum count for Timer_2  90us
+    PR2 = 4608;             	//sets the maximum count for Timer_2  90us
     T2CONbits.TCS = 0;      //choose FCY as clock source for Timer_2
-    T2CONbits.TCKPS = 0; //sets the Timer_2 pre-scaler to 1
+    T2CONbits.TCKPS = 2; //sets the Timer_2 pre-scaler to 1
     IFS0bits.T2IF = 0;      //clears Timer_2 interrupt flag
     _T2IE = 1;     	       	//enable Timer_2 Interrupts
     T2CONbits.TON = 1;      //turns Timer_2 OFF
@@ -125,13 +125,15 @@ ADCON1bits.SAMP = 0;
 }
 
 int i=0;
+int valor;
+int flag=0;
 void __attribute__((__interrupt__, auto_psv)) _ADCInterrupt(void) {
 IFS0bits.ADIF = 0;
-adc_vals[i]=ADCBUF0;
-
+//adc_vals[i]=ADCBUF0;
+valor=ADCBUF0;
 ADCON1bits.SAMP = 1;
 ++i;
-
+flag=1;
 }
 
 
@@ -150,16 +152,25 @@ int main(void) {
     ADCON1bits.SAMP = 1;
      timer2();
      int p;
-     int numero=256;//numero de conversoes a ser realizadas
+     int numero=512;//numero de conversoes a ser realizadas
     while(1){
 
-        if(i==numero){
+        /*if(i==numero){
              //T2CONbits.TON = 0;
              	ADCON1bits.ADON = 0; 
              for(p=0;p<numero;++p) 
             printf("%d %d\n",p,adc_vals[p]);
            
                 i=0;
+        }*/
+        if(flag==1){
+            printf("%d %d\n",i,valor);
+            flag=0;
+            if(i==500000){
+               T2CONbits.TON = 0;
+               	ADCON1bits.ADON = 0; 
+                
+            }
         }
        
     }
