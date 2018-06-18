@@ -1,0 +1,7 @@
+XADCdemo- main file
+
+spi_ctr, spi_shift- ficheiros controlo SPI para o DAC
+
+spi_ctrl1, spi-sift1- ficheiros controlo SPI para Arduino
+m
+emory- ficheiro para FIFO memory
