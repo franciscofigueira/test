@@ -221,8 +221,12 @@ module XADCdemo(
       end
       end
 
-reg [7:0] data_in1='b0;
+wire [7:0]data_memory;
+reg [7:0] data_in1;
+
 wire shift_en1,load1;
+
+wire send_memory;
 reg send1=1;
 spi_shift1 shift1(
          .clk(sub), 
@@ -278,6 +282,11 @@ spi_shift1 shift1(
           end
           end
  
+ wire [11:0] datafilt_memory;
+ assign datafilt_memory=datafilt[11:0];
+ wire filter_finished_memory;
+ assign filter_finished_memory=filter_finished;
+ 
       always @(posedge clk_out1)
     
         if (sw[0]==1'b1) begin
@@ -290,7 +299,8 @@ spi_shift1 shift1(
         data_in[12:1]=12'b111111111111;
         else   begin
                 data_in[12:1]=datafilt[11:0];
-                data_in1[7:0]=datafilt[11:4];
+        
+               // data_in1[7:0]=datafilt[11:4];
          end
          end
          
@@ -356,12 +366,16 @@ spi_shift1 shift1(
        always @(posedge sub) begin
           read_clk_aux <= read_clk_aux+1'b1;
           if(subclk==9) begin
-           if(read_clk==0)
+           if(read_clk==0)begin
            read_clk <=1'b1;
+          data_in1 <=data_memory;
+           send1<=send_memory;
+           end
            else
            read_clk <=1'b0;
            read_clk_aux <='b0;
            end
+           
            end
            
     /*
@@ -375,13 +389,13 @@ spi_shift1 shift1(
                memory memory(
                .rst(rst),     
                .clk_out1(clk_out1),
-               .dados(datafilt),   
-               .filter_finished(filter_finished),   
-               .rd_en(),
+               .datafilt(datafilt_memory),   
+               .filter_finished1(filter_finished_memory),   
+              
                .read_clk(read_clk),   
-                .dout(),   
+                .data_in2(data_memory),   
                 .full(),
-                .send1(send1),   
+                .send2(send_memory),   
                 .empty()   
                );
             /*     fifo_generator_0 your_instance_name (
