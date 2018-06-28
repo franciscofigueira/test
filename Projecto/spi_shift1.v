@@ -15,16 +15,16 @@ module spi_shift1(
     input wire [7:0] data_in,
 	output wire s_out
 );
-	reg [16:0] data;
+	reg [8:0] data;
 	assign s_out = data[8];
 	
     always @(negedge clk or posedge rst) begin
         if (rst)
 			data = 8'b0;
 		else if(load)
-            data = {1'b0, data_in};
+            data = {1'b0, data_in};//1'b0
         else if (shift_en)
-            data = {data[7:0], shift_in};
+            data = {data[7:0], shift_in};//  data = {data[7:0], shift_in};
         else
             data = data;
     end

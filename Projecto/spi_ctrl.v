@@ -37,7 +37,7 @@ module spi_ctrl(
             cstate = nstate;
     end
 
-    always @(negedge clk or posedge rst) begin
+always @(negedge clk or posedge rst) begin
         if(rst)
             count = 4'b1111;
         else if (cstate == Shift)

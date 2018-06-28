@@ -207,7 +207,7 @@ module XADCdemo(
     
     
          reg [10:0] subclk='b0;
-  reg[1:0] sub='b0;
+  reg[0:0] sub='b0;
 
   assign clkslow =sub;
      always @(posedge clk_out1) begin
@@ -262,7 +262,7 @@ spi_shift1 shift1(
    
       reg [1:0] valor_actual = valor1;
    
-   reg [17:0] counter='b0;
+   reg [16:0] counter='b0;
  reg [15:0] soma='b0;
  reg [5:0] media='b0;
  //reg[1:0] finished='b0;
@@ -283,24 +283,33 @@ spi_shift1 shift1(
           end
  
  wire [11:0] datafilt_memory;
+ wire [15:0] data_test;
+
+ assign data_test[15:4]=datafilt[11:0];
+ assign data_test[3:0]='b0;
  assign datafilt_memory=datafilt[11:0];
  wire filter_finished_memory;
  assign filter_finished_memory=filter_finished;
  
-      always @(posedge clk_out1)
+      always @(posedge clk_out1)begin
     
         if (sw[0]==1'b1) begin
             valor_actual <= valor1;
           //  send <= 1'b1;
           //  data_in <=16'b0010100000000001;
+        //          data_in1 <=data_memory;
+          //   send1<=send_memory;
           data_in[15:13]=3'b001;
         //  data_in[12:1]= shifted_data0;
-       if(data0[15:4]<=4'b111)
+       if(data0[15:4]<=4'b1111)
         data_in[12:1]=12'b111111111111;
         else   begin
-                data_in[12:1]=datafilt[11:0];
+            data_in[12:1]=datafilt[11:0];
+             //   data_in[12:4]=data_memory[7:0];
         
-               // data_in1[7:0]=datafilt[11:4];
+              // data_in1[7:0]=datafilt[11:4];
+              data_in1[7:0]=data_memory;
+              send1=send_memory;
          end
          end
          
@@ -357,7 +366,7 @@ spi_shift1 shift1(
                
                endcase
                end
-      
+      end
    // MEMORY FIFO
    
     //  assign dad=datafilt;
@@ -368,8 +377,8 @@ spi_shift1 shift1(
           if(subclk==9) begin
            if(read_clk==0)begin
            read_clk <=1'b1;
-          data_in1 <=data_memory;
-           send1<=send_memory;
+  //      data_in1 <=data_memory;
+    //     send1<=send_memory;
            end
            else
            read_clk <=1'b0;
@@ -377,7 +386,10 @@ spi_shift1 shift1(
            end
            
            end
-           
+          /*   always @(posedge clk_out1) begin
+             data_in1 <=data_memory;
+                   send1<=send_memory;
+                   end*/
     /*
       wire full;
                  wire empty;
@@ -389,10 +401,10 @@ spi_shift1 shift1(
                memory memory(
                .rst(rst),     
                .clk_out1(clk_out1),
-               .datafilt(datafilt_memory),   
+               .datafilt(/*data_test*/'h9F9F),   
                .filter_finished1(filter_finished_memory),   
-              
-               .read_clk(read_clk),   
+              .done(done1),
+               .read_clk(/*read_clk*/sub),   
                 .data_in2(data_memory),   
                 .full(),
                 .send2(send_memory),   

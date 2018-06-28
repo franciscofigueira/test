@@ -23,11 +23,11 @@
 module memory(
 input wire rst,
 input wire clk_out1,
-input wire    datafilt,
+input wire  [15:0]  datafilt,
 input wire filter_finished1,
-
+input wire done,
 input wire read_clk,
-output wire data_in2,
+output wire [7:0] data_in2,
 output full,
 output empty,
 output wire send2
@@ -75,7 +75,7 @@ assign dados1=dados;
                  parameter read_stat=2'b10;
                  reg [1:0] estado_actual=write_stat;
                  reg[20:0] read='b0;
-                 
+                 reg debug_r=0;
             always @(posedge clk_out1) begin
             filter_finished <=filter_finished1;
                case (estado_actual)
@@ -92,26 +92,36 @@ assign dados1=dados;
                if(full==1'b1)begin
                estado_actual <= read_stat;
                wr_en<=1'b0;
+               debug_r <= !debug_r;
                end
                
                 end        
      
                read_stat:begin
-               read <= read+1'b1;
-                if(read >=190)begin
+             /*  read <= read+1'b1;
+                if(read >=21'd190)begin
                       data_in1<=dout;
                       read <= 'b0;
+                      // rd_en=1'b1;
                 end 
-                      
+                    
                rd_en=1'b1;
+               send1 <=1'b1;*/
+               if(done==1'b1)begin
+               rd_en<=1'b1;
+               data_in1<=dout;
                send1 <=1'b1;
-               
-              
+               end
+               else begin
+               rd_en <=1'b0;
+               send1 <=1'b0;
+              end
                
                if(empty)begin
                estado_actual <= write_stat;
                rd_en<=1'b0;
                send1 <=1'b0;
+               debug_r<=!debug_r;
                end
                end
                endcase
