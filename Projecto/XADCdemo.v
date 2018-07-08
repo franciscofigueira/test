@@ -1,23 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: Digilent Inc.
-// Engineer: Samuel Lowe
-// 
-// Create Date: 4/14/2016
-// Design Name: Cmod A7 Xadc reference project 
-// Module Name: XADC
-// Target Devices: Digilent Cmod A7 15t rev. B
-// Tool Versions: Vivado 2015.4
-// Description: Demo that will take input from a button to decide which xadc channel to drive a pwm'd led
-// Dependencies: 
-// 
-// Revision:  
-// Revision 0.01 - File Created
-// Additional Comments: 
-//               
-// 
-//////////////////////////////////////////////////////////////////////////////////
- 
 
 module XADCdemo(
     input clk,
@@ -26,14 +7,14 @@ module XADCdemo(
     input vn_in,
     output [7:0] data_out,
     output [3:0] led,
-//    output pio,
     input [3:0] xa_n,
     input [3:0] xa_p,
     output clkslow,
+    output ready,
      output MOSI1, SCLK1, SS1, done1,
-    output MOSI, SCLK, SS, done,clk_out1
+    output MOSI, SCLK, SS, done
  );
- 
+ wire clk_out1;
  clk_wiz_0 instance_name
     (
      // Clock out ports
@@ -76,7 +57,7 @@ module XADCdemo(
     //XADC signals
     wire enable;                     //enable into the xadc to continuosly get data out
     reg [6:0] Address_in = 7'h14;    //Adress of register in XADC drp corresponding to data
-    wire ready;                      //XADC port that declares when data is ready to be taken
+   // wire ready;                      //XADC port that declares when data is ready to be taken
     wire [15:0] data;                //XADC data   
     reg [15:0] data0, data1, data2, data3;
 //    wire [11:0] shifted_data;
@@ -86,16 +67,9 @@ module XADCdemo(
     wire [4:0] channel_out;
     reg [1:0] sel;
     
-    //xadc block needs a 100 MHz clk
-//    wire clk;
 
-//    clk_wiz_0 CLKWIZ (
-//        clk_in1  (sysclk),
-//        clk_out1 (clk)
-//    );
-    
-    
-    
+
+
     ///////////////////////////////////////////////////////////////////
     //XADC Instantiation
     //////////////////////////////////////////////////////////////////
@@ -122,9 +96,7 @@ module XADCdemo(
         .channel_out (channel_out),
         .drdy_out    (ready)
     );
-                     
-
-                                  
+                             
     ///////////////////////////////////////////////////////////////////
     //Address Handling Controlled by button
     //////////////////////////////////////////////////////////////////      
@@ -154,25 +126,7 @@ module XADCdemo(
         3: data3 <= (channel_out == 8'h16) ? data : data3;
         endcase
     
-//        if (sw[0] == 1'b1 && channel_out == 8'h1e)
-//            data0 <= data;
-//        else if (sw[0] == 1'b0)
-//            data0 <= 'b0;
-            
-//        if (sw[1] == 1'b1 && channel_out == 8'h17)
-//            data1 <= data;
-//        else if (sw[1] == 1'b0)
-//            data1 <= 'b0;
-            
-//        if (sw[2] == 1'b1 && channel_out == 8'h1f)
-//            data2 <= data;
-//        else if (sw[2] == 1'b0)
-//            data2 <= 'b0;
-            
-//        if (sw[3] == 1'b1 && channel_out == 8'h16)
-//            data3 <= data;
-//        else if (sw[3] == 1'b0)
-//            data3 <= 'b0;
+
     end
     ///////////////////////////////////////////////////////////////////
     //LED PWM
@@ -205,14 +159,14 @@ module XADCdemo(
     assign led[3] = (sw[3] == 1'b0) ? 1'b0 : (pwm_count < shifted_data3 ? 1'b1 : 1'b0);
     
     
-    
+// CREATION OF slower clock for SPI communication with Arduino  
          reg [10:0] subclk='b0;
   reg[0:0] sub='b0;
 
   assign clkslow =sub;
      always @(posedge clk_out1) begin
      subclk <= subclk+1'b1;
-     if(subclk==20) begin
+     if(subclk==100) begin
       if(sub==0)
       sub <=1'b1;
       else
@@ -228,6 +182,7 @@ wire shift_en1,load1;
 
 wire send_memory;
 reg send1=1;
+
 spi_shift1 shift1(
          .clk(sub), 
          .rst(rst), 
@@ -238,19 +193,26 @@ spi_shift1 shift1(
          .s_out(MOSI1)
      );
      
+     wire SCLK_d;
+     
      spi_ctrl1 ctrl1(
          .clk(sub),
          .rst(rst),
-         .send(send1),
+          .send(send1),
          .shift_en(shift_en1),
          .done(done1),
          .load(load1),
-         .SCLK(SCLK1),
+         .SCLK(SCLK_d),
          .SS(SS1)
      );
 
 
-
+// Delay module for SPI communication with Arduino
+delay delay (
+.clk_27(clk_out1),
+.vsync(SCLK_d),
+.vsync_o(SCLK1)
+);
      
      
      
@@ -265,81 +227,70 @@ spi_shift1 shift1(
    reg [16:0] counter='b0;
  reg [15:0] soma='b0;
  reg [5:0] media='b0;
- //reg[1:0] finished='b0;
+
  reg [11:0] datafilt;
  reg [1:0] filter_finished='b0;
+ 
+ // FILTER Implemented
  always@(posedge ready) begin
           if(media<16)begin
-          soma <=soma +data0[15:4];
+          soma <=soma +data0[15:4]; // Adding of 16 values
           media <= media+1'b1;
           end
           else begin
-          datafilt[11:0]=soma >> 4;
+          datafilt[11:0]=soma >> 4;// 4bit shift
           soma <= 0;
           media<=0;
           filter_finished <=1'b1;
-     //     finished <=1'b1 ;
+    
           end
           end
  
  wire [11:0] datafilt_memory;
  wire [15:0] data_test;
 
- assign data_test[15:4]=datafilt[11:0];
- assign data_test[3:0]='b0;
+ assign data_test[11:0]=datafilt[11:0];
+ assign data_test[15:12]='b0;
  assign datafilt_memory=datafilt[11:0];
  wire filter_finished_memory;
  assign filter_finished_memory=filter_finished;
+ reg[0:0] slow='b0;
+ 
  
       always @(posedge clk_out1)begin
     
-        if (sw[0]==1'b1) begin
+        if (sw[0]==1'b1) begin // IF SWITCH IS TURNED ON DAC OUTPUT IS PROPORTIONAL TO ADC INPUT
             valor_actual <= valor1;
-          //  send <= 1'b1;
-          //  data_in <=16'b0010100000000001;
-        //          data_in1 <=data_memory;
-          //   send1<=send_memory;
+   
           data_in[15:13]=3'b001;
-        //  data_in[12:1]= shifted_data0;
-       if(data0[15:4]<=4'b1111)
+      
+      if(data0[15:4]<=4'b0001)
         data_in[12:1]=12'b111111111111;
-        else   begin
-            data_in[12:1]=datafilt[11:0];
-             //   data_in[12:4]=data_memory[7:0];
-        
-              // data_in1[7:0]=datafilt[11:4];
+       else   begin
+ 
+             data_in[12:1]=datafilt[11:0];
+
               data_in1[7:0]=data_memory;
               send1=send_memory;
-         end
+        end
          end
          
-         
-         else begin
-       //  if(counter[16:0]==17'b11111111111111111)
-         //counter <=0;
-         //else
-           counter <= counter+1'b1;
+           else begin
+
+           counter <= counter+1'b1;// IF SWITCH TURNED OFF DAC OUTPUT IS CONTROLLED BY A STATE MACHINE
             case (valor_actual )
                valor1 : begin
                   if (counter[16:15]==2'b00) begin
-                      data_in =16'b0010000000000000;
-                   
+                      data_in =16'b0010000000000000;  
                      valor_actual <= valor2; end
-                //  else if (<condition>)
-                  //   <state> <= <next_state>;
-                 // else
-                 //    <state> <= <next_state>;
-               
+                    
               
                end
               valor2 : begin
                   if (counter[16:15]==2'b01) begin
-                           data_in =16'b0010100000000000;
+                   data_in =16'b0010100000000000;
                   valor_actual <= valor3; end
-                //  else if (<condition>)
-                //     <state> <= <next_state>;
-                 // else
-               //      <state> <= <next_state>;
+        
  
             
                end
@@ -347,26 +298,21 @@ spi_shift1 shift1(
                   if (counter[16:15]==2'b10) begin
                     data_in =16'b0011000000000000;
                     valor_actual <= valor4; end
-                 // else if (<condition>)
-                 //    <state> <= <next_state>;
-               //   else
-             //        <state> <= <next_state>;
+    
            
                end
                valor4 : begin
                   if (counter[16:15]==2'b11) begin
                 data_in =16'b0011100000000000;
                    valor_actual <= valor1; end
-                  //else if (<condition>)
-                    // <state> <= <next_state>;
-                  //else
-                    // <state> <= <next_state>;
+             
                         
                end
                
                endcase
                end
       end
+      
    // MEMORY FIFO
    
     //  assign dad=datafilt;
@@ -386,22 +332,12 @@ spi_shift1 shift1(
            end
            
            end
-          /*   always @(posedge clk_out1) begin
-             data_in1 <=data_memory;
-                   send1<=send_memory;
-                   end*/
-    /*
-      wire full;
-                 wire empty;
-        reg [15:0] dados;      
-     reg [0:0] wr_en;
-           reg [0:0] rd_en;
-           wire [7:0] dout;*/
+
                
                memory memory(
                .rst(rst),     
                .clk_out1(clk_out1),
-               .datafilt(/*data_test*/'h9F9F),   
+               .datafilt(/*data_test*/'hC49F),   
                .filter_finished1(filter_finished_memory),   
               .done(done1),
                .read_clk(/*read_clk*/sub),   
@@ -410,62 +346,6 @@ spi_shift1 shift1(
                 .send2(send_memory),   
                 .empty()   
                );
-            /*     fifo_generator_0 your_instance_name (
-                   .rst(rst),                  // input wire rst
-                   .wr_clk(clk_out1),            // input wire wr_clk
-                   .rd_clk(read_clk),            // input wire rd_clk
-                   .din(dados),                  // input wire [15 : 0] din
-                   .wr_en(wr_en),              // input wire wr_en
-                   .rd_en(rd_en),              // input wire rd_en
-                   .dout(dout),                // output wire [7 : 0] dout
-                   .full(full),                // output wire full
-                   .empty(empty),              // output wire empty
-                   .wr_rst_busy(wr_rst_busy),  // output wire wr_rst_busy
-                   .rd_rst_busy(rd_rst_busy)  // output wire rd_rst_busy
-                 ); */
-       /*     parameter write_stat =2'b01;
-            parameter read_stat=2'b10;
-            reg [1:0] estado_actual=write_stat;
-            reg[20:0] read='b0;
-        always @(posedge clk_out1) begin
-          case (estado_actual)
-          write_stat: begin
-          
-          if(filter_finished==1'b1)begin
-              wr_en<=1'b1;
-          dados <= datafilt;
-          filter_finished <= 1'b0;
-             end
-          else
-          wr_en<=1'b0;
-          
-          if(full==1'b1)begin
-          estado_actual <= read_stat;
-          wr_en<=1'b0;
-          end
-          
-           end        
-
-          read_stat:begin
-          read <= read+1'b1;
-           if(read >=190)begin
-                 data_in1<=dout;
-                 read <= 'b0;
-           end 
-                 
-          rd_en=1'b1;
-          send1 <=1'b1;
-          
          
-          
-          if(empty)begin
-          estado_actual <= write_stat;
-          rd_en<=1'b0;
-          send1 <=1'b0;
-          end
-          end
-          endcase
- 
- end*/
        
 endmodule

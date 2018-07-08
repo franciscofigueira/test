@@ -44,14 +44,7 @@ reg filter_finished;
 wire [15:0] dados1;
 reg [15:0] dados;
 assign dados1=dados;
-/*
-     wire full;
-               wire empty;
-      reg [15:0] dados;
-    //  assign dad=datafilt;
-      reg [2:0] read_clk_aux;
-      reg [1:0] read_clk='b0;
- */
+
            
            reg [0:0] wr_en;
           // reg [0:0] rd_en;
@@ -81,7 +74,7 @@ assign dados1=dados;
                case (estado_actual)
                write_stat: begin
               
-               if(filter_finished==1'b1)begin
+               if(filter_finished==1'b1)begin // wait until data aquisition and filter finished
                    wr_en<=1'b1;
                dados <= datafilt;
                filter_finished <= 1'b0;
@@ -98,16 +91,8 @@ assign dados1=dados;
                 end        
      
                read_stat:begin
-             /*  read <= read+1'b1;
-                if(read >=21'd190)begin
-                      data_in1<=dout;
-                      read <= 'b0;
-                      // rd_en=1'b1;
-                end 
-                    
-               rd_en=1'b1;
-               send1 <=1'b1;*/
-               if(done==1'b1)begin
+    
+               if(done==1'b1)begin //wait until SPI transmission is complete
                rd_en<=1'b1;
                data_in1<=dout;
                send1 <=1'b1;
